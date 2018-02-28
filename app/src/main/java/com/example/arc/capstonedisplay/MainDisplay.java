@@ -1,16 +1,40 @@
 package com.example.arc.capstonedisplay;
 
 import android.app.FragmentManager;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.LinearSnapHelper;
+import android.support.v7.widget.PagerSnapHelper;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SnapHelper;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.TextView;
+import android.widget.Toolbar;
 
+import com.androidplot.util.PixelUtils;
+import com.androidplot.xy.BoundaryMode;
+import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.SimpleXYSeries;
+import com.androidplot.xy.XYPlot;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketOptions;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,68 +43,98 @@ public class MainDisplay extends AppCompatActivity {
     private TextView overVoltageValue;
     private Handler mHandler;
     private SimpleXYSeries voltageSeries;
-    private CustomConnection con;
+    List<PlotterCard> plotterCards=new ArrayList<>();
+    final private CustomConnection con=new CustomConnection();
+    private DataStorage dataStorage=null;
     int c=0;
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.actionbar, menu);
+        con.setup(this,(MenuItem)menu.findItem(R.id.connection_status));
+        return true;
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.connection_status:
+                //-----Get state
+                if(con.state==con.STATE_NOT_CONNECTED){
+                        con.connect("192.168.0.100",2048);
+                }else{
+                        con.disconnect();
+                }
+                //-----Try to connect
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    @Override
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
+        //-----Set up screen options
+        //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        //this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main_display);
+        PixelUtils.init(this);
+
         //-----Get Widgets and such
         plotsRV =(RecyclerView)findViewById(R.id.PlotsRV);
         overVoltageValue=(TextView) findViewById(R.id.overvoltageValue);
         mHandler=new Handler();
+        SnapHelper snap=new PagerSnapHelper();
+        snap.attachToRecyclerView(plotsRV);
         //-----Create Plot
-        /*voltageSeries=new SimpleXYSeries("Voltage");
+        voltageSeries=new SimpleXYSeries("Voltage");
         voltageSeries.useImplicitXVals();
-        plot.addSeries(voltageSeries,new LineAndPointFormatter(Color.rgb(200,100,100),Color.TRANSPARENT,Color.TRANSPARENT,null));
-        plot.setDomainBoundaries(0,100,BoundaryMode.FIXED);
-        plot.setRangeBoundaries(0,150,BoundaryMode.FIXED);
-        */
-        List<PlotterCard> plotterCards=new ArrayList<>();
-        plotterCards.add(new PlotterCard("Voltages"));
-        //-----Setup plot selections
-        plotsRV.setOnClickListener(new View.OnClickListener() {
 
-        @Override
-        public void onClick(View arg0) {
-            FragmentManager manager=getFragmentManager();
-            voltageSelectorDialog dialog=new voltageSelectorDialog();
-            dialog.show(manager,"voltagePlotSelector");
-        }
+        //-----Make DataStorage
+        dataStorage=new DataStorage();
+        //-----Make plots
+
+        PlotterCard voltageCard=new PlotterCard("Voltages","Voltage [V]");
+        plotterCards.add(voltageCard);
+        PlotterCard currentCard=new PlotterCard("Currents","Current [A]");
+        plotterCards.add(currentCard);
+        PlotterCard powerCard=new PlotterCard("Powers", "Power [W]");
+        plotterCards.add(powerCard);
+        voltageCard.setData(DataStorage.plotsVoltage,DataStorage.formatsVoltage,DataStorage.maxsVoltage);
+        currentCard.setData(DataStorage.plotsCurrent,DataStorage.formatsCurrent,DataStorage.maxsCurrent);
+        powerCard.setData(DataStorage.plotsPower,DataStorage.formatsPower,DataStorage.maxsPower);
+        //-----Create adapter
+        PlotterCardAdapter adapter=new PlotterCardAdapter(plotterCards,dataStorage);
+        plotsRV.setHasFixedSize(true);
+        plotsRV.setAdapter(adapter);
+        LinearLayoutManager layout=new LinearLayoutManager(this);
+        layout.setOrientation(LinearLayoutManager.HORIZONTAL);
+        plotsRV.setLayoutManager(layout);
+        //-----Set up selection listener
+        plotsRV.addOnItemTouchListener(new RecyclerItemClickListener(this, plotsRV, new RecyclerItemClickListener.OnItemClickListener() {
+            @Override public void onItemClick(View view, int i) {
+                // do whatever
+                Log.d("CLICK",plotterCards.get(i).title);
+            }
+
+            @Override public void onLongItemClick(View view, int i) {
+                //-----Open the dialog
+                plotterCards.get(i).manager.edit(view.getContext());
+            }
+        }){
         });
+    }
 
-        //-----Connect to server
-        con=new CustomConnection();
-        con.connect("192.168.0.100",2048);
-        //-----Start Polling
-        //startRepeatingTask();
-    }
-    /*void startRepeatingTask() {
-        updatePoll.run();
-    }
-    Runnable updatePoll = new Runnable() {
-        @Override
-        public void run() {
-            updateData(100+50*Math.sin(0.1*c));
-            c++;
-            //Log.d("STATE","tick:"+c);
-            plot.redraw();
-            mHandler.postDelayed(updatePoll, 100);
-        }
-    };*/
-    void updateData(double val){
-        float fac=100;
-        overVoltageValue.setText(Math.round((val-120)*fac)/fac+"%");
-        if(voltageSeries.size()>=100){
-            voltageSeries.removeFirst();
-        }
-        voltageSeries.addLast(null,val);
-    }
-    public void openCircuitConfig(View view){
+    /*public void openCircuitConfig(View view){
         Intent intent = new Intent(getApplicationContext(),CircuitConfig.class);
         startActivity(intent);
-    }
-    public void openVoltageConfig(View view){
+    }*/
+
+    private void setUpData(){
+        //-----Check data
+        if(dataStorage!=null){
+
+        }
     }
 }
