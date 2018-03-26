@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="BatteryState">
+        <item>Auto</item>
+        <item>Off</item>
+        <item>Charge</item>
+        <item>Discharge</item>
+    </string-array>
+    <string-array name="PVState">
+        <item>Enabled</item>
+        <item>Disabled</item>
+    </string-array>
+    <string-array name="QuickSettings">
+        <item>Smart</item>
+        <item>Island</item>
+        <item>Basic</item>
+    </string-array>
+</resources>

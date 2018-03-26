@@ -40,7 +40,7 @@ public class PlotterCardAdapter extends RecyclerView.Adapter<PlotterCardAdapter.
     public static class PlotterViewHolder extends RecyclerView.ViewHolder {
         CardView cv;
         XYPlot plot;
-        TextView title;
+        //TextView title;
         int i=-1;
 
         PlotterViewHolder(View itemView){
@@ -49,7 +49,7 @@ public class PlotterCardAdapter extends RecyclerView.Adapter<PlotterCardAdapter.
             cv=(CardView)itemView.findViewById(R.id.plotterCard);
             plot=(XYPlot)itemView.findViewById(R.id.plot);
             //plot.setDomainBoundaries(0,100,BoundaryMode.GROW);
-            title=(TextView)itemView.findViewById(R.id.plotTitle);
+            //title=(TextView)itemView.findViewById(R.id.plotTitle);
         }
     }
     PlotterCardAdapter(List<PlotterCard> plts, DataStorage data){
@@ -67,14 +67,16 @@ public class PlotterCardAdapter extends RecyclerView.Adapter<PlotterCardAdapter.
         Log.d("PlotterCardAdapter","CreatingViewHolder");
         View v = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.chart_card, viewGroup, false);
         PlotterViewHolder pvh = new PlotterViewHolder(v);
-        pvh.i=i;
         return pvh;
     }
     @Override
     public void onBindViewHolder(PlotterViewHolder plotterViewHolder, int i) {
-        plotterViewHolder.title.setText(plots.get(i).title);
-        List<SimpleXYSeries> tmpPlots=plots.get(i).series;
         plots.get(i).plot=plotterViewHolder.plot;
+        plotterViewHolder.i=i;
+        plotterViewHolder.plot.setTitle(plots.get(i).title);
+        plots.get(i).update();
+        //plotterViewHolder.title.setText(plots.get(i).title);
+        //plots.get(i).plot=plotterViewHolder.plot;
     }
     @Override
     public void onViewAttachedToWindow(PlotterViewHolder plotterViewHolder) {

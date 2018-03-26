@@ -8,7 +8,9 @@ import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.XYPlot;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Vector;
 
@@ -27,6 +29,7 @@ public class DataStorage {
     private static final int POWER=2;
     //-----Misc
     private static double epochStart=0;
+    public static long currentEpoch=0;
     //-----Display plots
     public static List<SimpleXYSeries> plotsVoltage=new ArrayList<>();
     public static List<SimpleXYSeries> plotsCurrent=new ArrayList<>();
@@ -37,6 +40,9 @@ public class DataStorage {
     public static List<Float> maxsVoltage=new ArrayList<>();
     public static List<Float> maxsCurrent=new ArrayList<>();
     public static List<Float> maxsPower=new ArrayList<>();
+    public static List<Float> intervalVoltage=new ArrayList<>();
+    public static List<Float> intervalCurrent=new ArrayList<>();
+    public static List<Float> intervalPower=new ArrayList<>();
     //-----Storage sizes
     public static int storageSizeImmediate=100;
     public static int storageSize1H=100;
@@ -59,14 +65,13 @@ public class DataStorage {
         plotsCurrent.clear();
         plotsPower.clear();
         //-----Init
-        setupPlot(VOLTAGE,dataImmediatePVVoltage,"PV Voltage",0,255,0,130);
-        setupPlot(CURRENT,dataImmediatePVCurrent,"PV Current",0,255,0,50);
-        setupPlot(VOLTAGE,dataImmediateBatteryVoltage,"Battery Voltage",255,0,0,15);
-        setupPlot(CURRENT,dataImmediateBatteryCurrent,"Battery Current",255,0,0,10);
-        setupPlot(VOLTAGE,dataImmediateSlackVoltage,"Slack Voltage",255, 153, 0,150);
-        setupPlot(VOLTAGE,dataImmediateJunctionVoltage,"Junction Voltage",255, 51, 153,150);
-        setupPlot(POWER,dataImmediateLoadPower,"Load Power",0,255,0,300);
-        setupPlot(POWER,dataImmediatePVPower,"PV Power",0,255,0,300);
+        setupPlot(VOLTAGE,dataImmediatePVVoltage,"PV Voltage",0,0,255,50,5);
+        setupPlot(CURRENT,dataImmediatePVCurrent,"PV Current",0,0,255,50,5);
+        setupPlot(VOLTAGE,dataImmediateBatteryVoltage,"Battery Voltage",255,0,0,15,1);
+        setupPlot(VOLTAGE,dataImmediateSlackVoltage,"Slack Voltage",255, 153, 0,150,10);
+        setupPlot(VOLTAGE,dataImmediateJunctionVoltage,"Junction Voltage",255, 51, 153,150,10);
+        setupPlot(POWER,dataImmediateLoadPower,"Load Power",0,255,0,75,15);
+        setupPlot(POWER,dataImmediatePVPower,"PV Power",0,0,255,300,25);
         //-----Add the Battery % and 'power quality'
     }
 
@@ -75,24 +80,29 @@ public class DataStorage {
         * 0: PV Voltage
         * 1: PV Current
         * 2: Battery Voltage
-        * 3: Battery Current
-        * 4: Slack Voltage
-        * 5: Junction Voltage
-        * 6: Load Power
+        * 3: Slack Voltage
+        * 4: Junction Voltage
+        * 5: Load Power
         * */
-        if(vals.length==7){
+        currentEpoch=(long)(epoch*10);
+        if(vals.length==6){
             if(epochStart==0){
-                epochStart=epoch;
+                epochStart=currentEpoch;
             }
             //-----Add the data
-            dataImmediatePVVoltage.addLast(epoch,vals[0]);
-            dataImmediatePVCurrent.addLast(epoch,vals[1]);
-            dataImmediateBatteryVoltage.addLast(epoch,vals[2]);
-            dataImmediateSlackVoltage.addLast(epoch,vals[3]);
-            dataImmediateJunctionVoltage.addLast(epoch,vals[4]);
-            dataImmediateLoadPower.addLast(epoch,vals[5]);
-            dataImmediatePVPower.addLast(epoch,vals[0]*vals[1]);
-            //-----Push other data
+            dataImmediatePVVoltage.addLast(currentEpoch,vals[0]);
+            dataImmediatePVCurrent.addLast(currentEpoch,vals[1]);
+            dataImmediateBatteryVoltage.addLast(currentEpoch,vals[2]);
+            dataImmediateSlackVoltage.addLast(currentEpoch,vals[3]);
+            dataImmediateJunctionVoltage.addLast(currentEpoch,vals[4]);
+            dataImmediateLoadPower.addLast(currentEpoch,vals[5]);
+            dataImmediatePVPower.addLast(currentEpoch,vals[0]*vals[1]);
+            //-----Push to displays
+            if(vals[4]!=0 && vals[3]!=0){
+                StatManager.addOvervoltage(vals[4]/vals[3]);
+            }
+            StatManager.addPVPower(vals[0]*vals[1]);
+            StatManager.addLoadPower(vals[5]);
             //-----Trim
             if(dataImmediatePVVoltage.size()>storageSizeImmediate){
                 dataImmediatePVVoltage.removeFirst();
@@ -110,7 +120,7 @@ public class DataStorage {
         }
     }
 
-    private void setupPlot(int type, SimpleXYSeries plot, String title, int r, int g, int b,float max){
+    private void setupPlot(int type, SimpleXYSeries plot, String title, int r, int g, int b,float max,float interval){
         plot.setTitle(title);
         LineAndPointFormatter f=new LineAndPointFormatter(Color.rgb(r,g,b),Color.TRANSPARENT,Color.TRANSPARENT,null);
         switch (type){
@@ -118,16 +128,19 @@ public class DataStorage {
                 plotsVoltage.add(plot);
                 formatsVoltage.add(f);
                 maxsVoltage.add(max);
+                intervalVoltage.add(interval);
                 break;
             case CURRENT:
                 plotsCurrent.add(plot);
                 formatsCurrent.add(f);
                 maxsCurrent.add(max);
+                intervalCurrent.add(interval);
                 break;
             case POWER:
                 plotsPower.add(plot);
                 formatsPower.add(f);
                 maxsPower.add(max);
+                intervalPower.add(interval);
                 break;
         }
     }

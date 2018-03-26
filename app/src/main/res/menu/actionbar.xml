@@ -6,12 +6,12 @@
         android:orderInCategory="100"
         app:showAsAction="always"
         android:icon="@drawable/ic_sync_black_24dp"
-        android:iconTint="@color/ap_gray"
+        android:iconTint="#999999"
         android:title="Connect to Server"
         />
     <item
-        android:id="@+id/action_settings"
-        android:title="Settings">
+        android:id="@+id/AboutMenu"
+        android:title="About">
     </item>
 
 </menu>

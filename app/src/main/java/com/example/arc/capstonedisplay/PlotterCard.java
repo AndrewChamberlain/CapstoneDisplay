@@ -4,15 +4,15 @@ import android.graphics.Color;
 import android.util.Log;
 import android.util.Size;
 
-import com.androidplot.ui.SizeMode;
 import com.androidplot.xy.BoundaryMode;
 import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.SimpleXYSeries;
-import com.androidplot.xy.StepMode;
 import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
 import com.androidplot.xy.XYSeries;
+import com.androidplot.xy.XYStepMode;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
 
@@ -28,7 +28,7 @@ public class PlotterCard {
     List<LineAndPointFormatter> formats;
     boolean active=true;
     List<Float>maximums;
-    float max=0;
+    List<Float>intervals;
 
     String title="BLANK TITLE";
     String range="BLANK RANGE";
@@ -38,16 +38,19 @@ public class PlotterCard {
         range=rangeLabel;
     }
 
-    public void setData(List<SimpleXYSeries> data, List<LineAndPointFormatter> fs, List<Float>maxs){
+    public void setData(List<SimpleXYSeries> data, List<LineAndPointFormatter> fs, List<Float>maxs, List<Float>inters){
         series=data;
         formats=fs;
         maximums=maxs;
+        intervals=inters;
         manager=new PlotManager(data,this);
     }
 
     public void refresh(){
         if(plot!=null) {
             //Log.w("PlotterCard","Redrawing:"+title+":"+series.get(0).size());
+            plot.setDomainBoundaries(DataStorage.currentEpoch-10000,DataStorage.currentEpoch,BoundaryMode.FIXED);
+            plot.setUserDomainOrigin(DataStorage.currentEpoch-10000);
             plot.redraw();
         }else{
             Log.w("PlotterCard","Cannot Refresh: '"+title+"'. Plot is null");
@@ -57,19 +60,22 @@ public class PlotterCard {
     public void update(){
         //-----Updates the data being displayed
         plot.clear();
-        max=0;
+        float max=0;
+        float interval=0;
         for(int i=0;i<series.size();i++){
             if(manager.mask[i]){
                 //-----add plot
                 max=Math.max(max,maximums.get(i));
+                interval=Math.max(interval,intervals.get(i));
                 plot.addSeries(series.get(i),formats.get(i));
             }
         }
         plot.setRangeBoundaries(0,max,BoundaryMode.FIXED);
-        plot.setRangeStepMode(StepMode.INCREMENT_BY_VAL);
         plot.setRangeLabel(range);
-        plot.setRangeStepMode(StepMode.INCREMENT_BY_VAL);
-        plot.getGraph().setLinesPerRangeLabel(2);
+        plot.setRangeStep(XYStepMode.INCREMENT_BY_VAL,interval);
+        plot.setDomainStep(XYStepMode.INCREMENT_BY_VAL,1000);
+        plot.setDomainValueFormat(new SimpleDateFormat("hh:mm:ss"));
+        Log.d("EPOCH",Long.toString(DataStorage.currentEpoch));
         Log.d("AAA","DONE");
     }
 }

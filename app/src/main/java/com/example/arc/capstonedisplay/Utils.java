@@ -11,6 +11,8 @@ import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v7.app.AlertDialog;
 import android.view.MenuItem;
 
+import java.sql.Connection;
+
 /**
  * Created by arc on 26/01/18.
  */
@@ -41,7 +43,7 @@ public class Utils {
             }
         });
     }
-    public static void displayConnectionError(final Context context, final CustomConnection con, final String error) {
+    public static void displayConnectionError(final Context context, final String error) {
         //-----https://futurestud.io/tutorials/android-quick-tips-8-how-to-dynamically-tint-actionbar-menu-icons
         runOnUI(new Runnable() {
             @Override
@@ -56,7 +58,7 @@ public class Utils {
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
                                 dialog.cancel();
-                                con.connect(con.dstAddr,con.dstPort);
+                                CustomConnection.connect(CustomConnection.dstAddr,CustomConnection.dstPort);
                             }
                         });
 
@@ -64,7 +66,7 @@ public class Utils {
                         "Cancel",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                Utils.tintMenuIcon(context,con.item,android.R.color.darker_gray);
+                                Utils.tintMenuIcon(context,CustomConnection.item,android.R.color.darker_gray);
                                 dialog.cancel();
                             }
                         });

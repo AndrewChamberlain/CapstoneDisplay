@@ -83,7 +83,6 @@ public class MainDisplay extends AppCompatActivity {
 
         //-----Get Widgets and such
         plotsRV =(RecyclerView)findViewById(R.id.PlotsRV);
-        overVoltageValue=(TextView) findViewById(R.id.overvoltageValue);
         mHandler=new Handler();
         SnapHelper snap=new PagerSnapHelper();
         snap.attachToRecyclerView(plotsRV);
@@ -101,9 +100,9 @@ public class MainDisplay extends AppCompatActivity {
         plotterCards.add(currentCard);
         PlotterCard powerCard=new PlotterCard("Powers", "Power [W]");
         plotterCards.add(powerCard);
-        voltageCard.setData(DataStorage.plotsVoltage,DataStorage.formatsVoltage,DataStorage.maxsVoltage);
-        currentCard.setData(DataStorage.plotsCurrent,DataStorage.formatsCurrent,DataStorage.maxsCurrent);
-        powerCard.setData(DataStorage.plotsPower,DataStorage.formatsPower,DataStorage.maxsPower);
+        voltageCard.setData(DataStorage.plotsVoltage,DataStorage.formatsVoltage,DataStorage.maxsVoltage,DataStorage.intervalVoltage);
+        currentCard.setData(DataStorage.plotsCurrent,DataStorage.formatsCurrent,DataStorage.maxsCurrent,DataStorage.intervalCurrent);
+        powerCard.setData(DataStorage.plotsPower,DataStorage.formatsPower,DataStorage.maxsPower,DataStorage.intervalPower);
         //-----Create adapter
         PlotterCardAdapter adapter=new PlotterCardAdapter(plotterCards,dataStorage);
         plotsRV.setHasFixedSize(true);
@@ -114,27 +113,37 @@ public class MainDisplay extends AppCompatActivity {
         //-----Set up selection listener
         plotsRV.addOnItemTouchListener(new RecyclerItemClickListener(this, plotsRV, new RecyclerItemClickListener.OnItemClickListener() {
             @Override public void onItemClick(View view, int i) {
-                // do whatever
-                Log.d("CLICK",plotterCards.get(i).title);
+                //-----Open the plot selection dialog
+                plotterCards.get(i).manager.edit(view.getContext());
             }
 
             @Override public void onLongItemClick(View view, int i) {
-                //-----Open the dialog
-                plotterCards.get(i).manager.edit(view.getContext());
+                //-----Open the time selection dialog
             }
         }){
         });
+        //-----Set up displays
+        StatManager.overvoltage=(StatDisplayer)findViewById(R.id.Stat_Overvoltage);
+        StatManager.PVPower=(StatDisplayer)findViewById(R.id.Stat_PV_Output);
+        StatManager.loadPower=(StatDisplayer)findViewById(R.id.Stat_LoadPower);
+        StatManager.PVState=(StatDisplayer)findViewById(R.id.Stat_PVOn);
+        StatManager.BatteryState=(StatDisplayer)findViewById(R.id.Stat_BatteryOn);
+        //-----
+        Logic.connection=con;
+        Logic.setup(this);
+        //-----
+        handler.postDelayed(updateStatDisplays, 100);
     }
-
-    /*public void openCircuitConfig(View view){
-        Intent intent = new Intent(getApplicationContext(),CircuitConfig.class);
-        startActivity(intent);
-    }*/
-
-    private void setUpData(){
-        //-----Check data
-        if(dataStorage!=null){
-
+    private Handler handler = new Handler();
+    private Runnable updateStatDisplays = new Runnable() {
+        @Override
+        public void run() {
+            StatManager.updateAll();
+            handler.postDelayed(updateStatDisplays, 100);
+            Logic.updateStates();
         }
-    }
+    };
+
+
+
 }
